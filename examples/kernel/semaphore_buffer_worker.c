@@ -1,9 +1,11 @@
 /*
  * 程序清单：信号量实现生产者消费者间的互斥
  *
- * 在这个程序中，会创建两个线程，一个是生成者线程worker一个是消费者线程thread
+ -* 在这个程序中，会创建两个线程，一个是生成者线程worker一个是消费者线程thread
+ +* 在这个程序中，会创建两个线程，一个是生产者线程worker，一个是消费者线程consumer
  *
- * 在数据信息生产、消费的过程中，worker负责把数据将写入到环形buffer中，而thread
+ -* 在数据信息生产、消费的过程中，worker负责把数据将写入到环形buffer中，而thread
+ +* 在数据信息生产、消费的过程中，worker负责把数据写入到环形buffer中，而consumer
  * 则从环形buffer中读出。
  */
 #include <rtthread.h>
@@ -131,8 +133,10 @@ static rt_bool_t rb_get(struct rb* rb, rt_uint8_t *ptr, rt_uint16_t length)
 	return RT_TRUE;
 }
 
-/* 生产者线程入口 */
-static void thread_entry(void* parameter)
+-/* 生产者线程入口 */
++/*消费者线程入口*/
+-static void thread_entry(void* parameter)
++statci void consumer_entry(void* parameter)
 {
 	rt_bool_t result;
 	rt_uint8_t data_buffer[BUFFER_ITEM + 1];
@@ -201,16 +205,20 @@ int semaphore_buffer_worker_init()
 		return 0;
 	}
 
-	/* 创建线程1 */
-	tid = rt_thread_create("thread",
-		thread_entry, RT_NULL, /* 线程入口是thread_entry, 入口参数是RT_NULL */
+-	/* 创建线程1 */
++	/* 创建消费者线程 */
+-	tid = rt_thread_create("thread",
++	tid = rt_thread_create("consumer",
+-		thread_entry, RT_NULL, /* 线程入口是thread_entry, 入口参数是RT_NULL */
++		consumer_entry,RT_NULL,/* 消费者线程入口是consumer_entry,入口参数是RT_NULL*/
 		THREAD_STACK_SIZE, THREAD_PRIORITY, THREAD_TIMESLICE);
 	if (tid != RT_NULL)
 		rt_thread_startup(tid);
 	else
 		tc_stat(TC_STAT_END | TC_STAT_FAILED);
 
-	/* 创建线程2 */
+-	/* 创建线程2 */
++	/* 创建生产者线程 */
 	worker = rt_thread_create("worker",
 		worker_entry, RT_NULL, /* 线程入口是worker_entry, 入口参数是RT_NULL */
 		THREAD_STACK_SIZE, THREAD_PRIORITY, THREAD_TIMESLICE);
